@@ -1,5 +1,8 @@
 
 import React, { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '../../store';
+import { addCategory, updateCategory, deleteCategory } from '../../store/slices/categoriesSlice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,22 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Edit, Trash2, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-interface Category {
-  id: string;
-  name: string;
-  description?: string;
-}
-
 const CategoryManager = () => {
-  const [categories, setCategories] = useState<Category[]>([
-    { id: '1', name: 'Electronics', description: 'Electronic devices and accessories' },
-    { id: '2', name: 'Accessories', description: 'Computer and device accessories' },
-    { id: '3', name: 'Software', description: 'Software licenses and applications' },
-    { id: '4', name: 'Hardware', description: 'Computer hardware components' },
-  ]);
+  const dispatch = useDispatch();
+  const { categories } = useSelector((state: RootState) => state.categories);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -38,19 +31,17 @@ const CategoryManager = () => {
     };
 
     if (editingCategory) {
-      setCategories(categories.map(cat => 
-        cat.id === editingCategory.id ? categoryData : cat
-      ));
+      dispatch(updateCategory(categoryData));
       toast.success('Category updated successfully');
     } else {
-      setCategories([...categories, categoryData]);
+      dispatch(addCategory(categoryData));
       toast.success('Category added successfully');
     }
 
     resetForm();
   };
 
-  const handleEdit = (category: Category) => {
+  const handleEdit = (category: any) => {
     setEditingCategory(category);
     setFormData({
       name: category.name,
@@ -61,7 +52,7 @@ const CategoryManager = () => {
 
   const handleDelete = (id: string) => {
     if (window.confirm('Are you sure you want to delete this category?')) {
-      setCategories(categories.filter(cat => cat.id !== id));
+      dispatch(deleteCategory(id));
       toast.success('Category deleted successfully');
     }
   };

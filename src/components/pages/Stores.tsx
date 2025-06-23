@@ -1,5 +1,8 @@
 
 import React, { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '../../store';
+import { updateUser } from '../../store/slices/usersSlice';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +16,9 @@ import toast from 'react-hot-toast';
 
 const Stores = () => {
   const { isAdmin } = useAuth();
+  const dispatch = useDispatch();
+  const { users } = useSelector((state: RootState) => state.users);
+  
   const [stores, setStores] = useState([
     { 
       id: '1', 
@@ -38,13 +44,13 @@ const Stores = () => {
     },
   ]);
   
-  // Sample users who can be store managers
-  const availableManagers = [
-    { id: '1', name: 'John Doe', role: 'Store Manager' },
-    { id: '2', name: 'Jane Smith', role: 'Store Manager' },
-    { id: '3', name: 'Mike Johnson', role: 'Team Lead' },
-    { id: '4', name: 'Sarah Wilson', role: 'Senior Staff' },
-  ];
+  // Get available managers (users with manager/lead roles or no store assignment)
+  const availableManagers = users.filter(user => 
+    user.role === 'Store Manager' || 
+    user.role === 'Team Lead' || 
+    user.role === 'Senior Staff' ||
+    !user.storeId
+  );
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStore, setEditingStore] = useState<any>(null);
@@ -75,12 +81,23 @@ const Stores = () => {
       name: formData.name,
       address: formData.address,
       managerId: formData.managerId,
-      manager: selectedManager?.name || 'Unassigned',
+      manager: selectedManager?.username || 'Unassigned',
       users: editingStore?.users || 0,
       status: 'Active',
       revenue: editingStore?.revenue || 0,
       growth: editingStore?.growth || '+0%',
     };
+
+    // Update the user's store assignment if a manager was selected
+    if (selectedManager) {
+      const updatedUser = {
+        ...selectedManager,
+        storeId: storeData.id,
+        storeName: formData.name,
+        role: 'Store Manager' // Ensure they become store manager
+      };
+      dispatch(updateUser(updatedUser));
+    }
 
     if (editingStore) {
       setStores(stores.map(store => 
@@ -125,7 +142,7 @@ const Stores = () => {
   const totalRevenue = stores.reduce((sum, store) => sum + store.revenue, 0);
 
   return (
-    <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+    <div className="space-y-4 md:space-y-6 p-2 md:p-4 lg:p-0">
       {/* Header */}
       <div className="flex flex-col space-y-4 lg:flex-row lg:justify-between lg:items-center lg:space-y-0">
         <div>
@@ -140,7 +157,7 @@ const Stores = () => {
               Add Store
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md mx-auto">
             <DialogHeader>
               <DialogTitle>{editingStore ? 'Edit Store' : 'Add New Store'}</DialogTitle>
             </DialogHeader>
@@ -172,13 +189,13 @@ const Stores = () => {
                   <SelectContent>
                     {availableManagers.map((manager) => (
                       <SelectItem key={manager.id} value={manager.id}>
-                        {manager.name} ({manager.role})
+                        {manager.username} ({manager.role})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500 mt-1">
-                  Select from existing users with manager/lead roles
+                  This will assign the selected user as Store Manager and associate them with this store
                 </p>
               </div>
               <div className="flex justify-end space-x-2">

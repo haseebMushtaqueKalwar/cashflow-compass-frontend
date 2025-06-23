@@ -1,8 +1,10 @@
+
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
 import { useAuth } from '../../hooks/useAuth';
 import { addProduct, updateProduct, deleteProduct, setSearchTerm, setSelectedStore } from '../../store/slices/productsSlice';
+import { addCategory } from '../../store/slices/categoriesSlice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,21 +16,11 @@ import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CategoryManager from '../modals/CategoryManager';
 
-const PREDEFINED_CATEGORIES = [
-  'Electronics',
-  'Accessories',
-  'Software',
-  'Hardware',
-  'Office Supplies',
-  'Mobile Devices',
-  'Gaming',
-  'Audio & Video'
-];
-
 const Products = () => {
   const dispatch = useDispatch();
   const { user, isAdmin } = useAuth();
   const { products, searchTerm, selectedStore } = useSelector((state: RootState) => state.products);
+  const { categories } = useSelector((state: RootState) => state.categories);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -94,6 +86,7 @@ const Products = () => {
   const handleCategoryChange = (value: string) => {
     if (value === 'add_new') {
       setShowNewCategoryInput(true);
+      setFormData({ ...formData, category: '' });
     } else {
       setFormData({ ...formData, category: value });
       setShowNewCategoryInput(false);
@@ -102,6 +95,13 @@ const Products = () => {
 
   const handleAddNewCategory = () => {
     if (newCategory.trim()) {
+      const categoryData = {
+        id: Date.now().toString(),
+        name: newCategory.trim(),
+        description: `Category: ${newCategory.trim()}`,
+      };
+      
+      dispatch(addCategory(categoryData));
       setFormData({ ...formData, category: newCategory.trim() });
       setNewCategory('');
       setShowNewCategoryInput(false);
@@ -145,12 +145,12 @@ const Products = () => {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+    <div className="space-y-4 md:space-y-6 p-2 md:p-4 lg:p-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Products</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Products</h1>
+          <p className="text-sm md:text-base text-gray-600">
             {isAdmin ? 'Manage products across all stores' : `Manage products for ${user?.storeName}`}
           </p>
         </div>
@@ -162,7 +162,7 @@ const Products = () => {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md mx-auto">
             <DialogHeader>
               <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
             </DialogHeader>
@@ -214,9 +214,9 @@ const Products = () => {
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {PREDEFINED_CATEGORIES.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.name}>
+                          {cat.name}
                         </SelectItem>
                       ))}
                       <SelectItem value="add_new">+ Add New Category</SelectItem>
@@ -316,7 +316,7 @@ const Products = () => {
         <CardHeader>
           <CardTitle>Product List ({filteredProducts.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
