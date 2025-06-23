@@ -10,9 +10,11 @@ interface CartItem {
 
 interface Invoice {
   id: string;
+  customerName?: string;
   items: CartItem[];
   total: number;
   date: string;
+  time?: string;
   storeId: string;
   storeName: string;
 }
@@ -27,12 +29,27 @@ const initialState: InvoicesState = {
   cart: [],
   invoices: [
     {
-      id: 'inv-001',
+      id: 'INV-20240115-001',
+      customerName: 'John Smith',
       items: [{ id: '1', name: 'Laptop', price: 999.99, quantity: 1 }],
       total: 999.99,
       date: '2024-01-15',
+      time: '14:30:00',
       storeId: '1',
       storeName: 'Downtown Store'
+    },
+    {
+      id: 'INV-20240116-002',
+      customerName: 'Jane Doe',
+      items: [
+        { id: '2', name: 'Mouse', price: 29.99, quantity: 2 },
+        { id: '3', name: 'Keyboard', price: 79.99, quantity: 1 }
+      ],
+      total: 139.97,
+      date: '2024-01-16',
+      time: '10:15:00',
+      storeId: '2',
+      storeName: 'Mall Store'
     }
   ],
   loading: false,
@@ -63,7 +80,7 @@ const invoicesSlice = createSlice({
       state.cart = [];
     },
     addInvoice: (state, action: PayloadAction<Invoice>) => {
-      state.invoices.push(action.payload);
+      state.invoices.unshift(action.payload);
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;

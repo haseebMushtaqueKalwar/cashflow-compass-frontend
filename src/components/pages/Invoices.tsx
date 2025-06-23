@@ -6,9 +6,11 @@ import { useAuth } from '../../hooks/useAuth';
 import { addToCart, updateCartQuantity, removeFromCart, clearCart, addInvoice } from '../../store/slices/invoicesSlice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ShoppingCart, Plus, Minus, Trash2, Search } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ShoppingCart, Plus, Minus, Trash2, Search, User, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Invoices = () => {
@@ -17,8 +19,14 @@ const Invoices = () => {
   const { products } = useSelector((state: RootState) => state.products);
   const { cart, invoices } = useSelector((state: RootState) => state.invoices);
   const [searchTerm, setSearchTerm] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [selectedStore, setSelectedStore] = useState(user?.storeId || '');
+  const [errors, setErrors] = useState<any>({});
 
-  const userProducts = isAdmin ? products : products.filter(p => p.storeId === user?.storeId);
+  const userProducts = isAdmin ? 
+    (selectedStore ? products.filter(p => p.storeId === selectedStore) : products) : 
+    products.filter(p => p.storeId === user?.storeId);
+    
   const userInvoices = isAdmin ? invoices : invoices.filter(i => i.storeId === user?.storeId);
   
   const filteredProducts = userProducts.filter(product =>
@@ -27,7 +35,30 @@ const Invoices = () => {
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
+  const generateInvoiceId = () => {
+    const date = new Date();
+    const dateStr = date.toISOString().split('T')[0].replace(/-/g, '');
+    const timeStr = String(invoices.length + 1).padStart(3, '0');
+    return `INV-${dateStr}-${timeStr}`;
+  };
+
+  const validateInvoice = () => {
+    const newErrors: any = {};
+    
+    if (!customerName.trim()) newErrors.customerName = 'Customer name is required';
+    if (cart.length === 0) newErrors.cart = 'At least one product must be added to cart';
+    if (isAdmin && !selectedStore) newErrors.store = 'Store selection is required';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleAddToCart = (product: any) => {
+    if (product.stock === 0) {
+      toast.error('Product is out of stock');
+      return;
+    }
+    
     dispatch(addToCart({
       id: product.id,
       name: product.name,
@@ -46,23 +77,32 @@ const Invoices = () => {
   };
 
   const handleCreateInvoice = () => {
-    if (cart.length === 0) {
-      toast.error('Cart is empty');
+    if (!validateInvoice()) {
+      if (errors.customerName) toast.error(errors.customerName);
+      if (errors.cart) toast.error(errors.cart);
+      if (errors.store) toast.error(errors.store);
       return;
     }
 
+    const storeId = isAdmin ? selectedStore : user?.storeId || '1';
+    const storeName = storeId === '1' ? 'Downtown Store' : 'Mall Store';
+
     const newInvoice = {
-      id: `INV-${Date.now()}`,
+      id: generateInvoiceId(),
+      customerName: customerName.trim(),
       items: [...cart],
       total: cartTotal,
       date: new Date().toISOString().split('T')[0],
-      storeId: user?.storeId || '1',
-      storeName: user?.storeName || 'Downtown Store'
+      time: new Date().toLocaleTimeString(),
+      storeId,
+      storeName
     };
 
     dispatch(addInvoice(newInvoice));
     dispatch(clearCart());
-    toast.success('Invoice created successfully');
+    setCustomerName('');
+    setErrors({});
+    toast.success(`Invoice ${newInvoice.id} created successfully`);
   };
 
   return (
@@ -80,14 +120,31 @@ const Invoices = () => {
           <Card>
             <CardHeader>
               <CardTitle>Products</CardTitle>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search products..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                {isAdmin && (
+                  <div>
+                    <Label>Select Store</Label>
+                    <Select value={selectedStore} onValueChange={setSelectedStore}>
+                      <SelectTrigger className={errors.store ? 'border-red-500' : ''}>
+                        <SelectValue placeholder="Select Store" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Downtown Store</SelectItem>
+                        <SelectItem value="2">Mall Store</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.store && <p className="text-red-500 text-xs mt-1">{errors.store}</p>}
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -103,7 +160,8 @@ const Invoices = () => {
                       <span className="text-lg font-bold">${product.price.toFixed(2)}</span>
                       <div className="flex items-center space-x-2">
                         <span className={`text-xs px-2 py-1 rounded ${
-                          product.stock < 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                          product.stock === 0 ? 'bg-red-100 text-red-800' :
+                          product.stock < 10 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
                         }`}>
                           {product.stock} left
                         </span>
@@ -123,8 +181,38 @@ const Invoices = () => {
           </Card>
         </div>
 
-        {/* Cart */}
+        {/* Cart and Invoice Details */}
         <div className="space-y-4">
+          {/* Customer Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <User className="h-5 w-5 mr-2" />
+                Customer Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="customerName">Customer Name *</Label>
+                  <Input
+                    id="customerName"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Enter customer name"
+                    className={errors.customerName ? 'border-red-500' : ''}
+                  />
+                  {errors.customerName && <p className="text-red-500 text-xs mt-1">{errors.customerName}</p>}
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <Calendar className="h-4 w-4" />
+                  <span>{new Date().toLocaleDateString()} • {new Date().toLocaleTimeString()}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Cart */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -134,7 +222,11 @@ const Invoices = () => {
             </CardHeader>
             <CardContent>
               {cart.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Cart is empty</p>
+                <div className="text-center py-8">
+                  <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">Cart is empty</p>
+                  <p className="text-sm text-gray-400">Add products to get started</p>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {cart.map((item) => (
@@ -151,7 +243,7 @@ const Invoices = () => {
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
-                        <span className="w-8 text-center">{item.quantity}</span>
+                        <span className="w-8 text-center font-medium">{item.quantity}</span>
                         <Button
                           size="sm"
                           variant="outline"
@@ -171,20 +263,21 @@ const Invoices = () => {
                     </div>
                   ))}
                   
-                  <div className="border-t pt-3 mt-4">
+                  <div className="border-t pt-4 mt-4 space-y-3">
                     <div className="flex justify-between text-lg font-bold">
                       <span>Total:</span>
                       <span>${cartTotal.toFixed(2)}</span>
                     </div>
+                    {errors.cart && <p className="text-red-500 text-xs">{errors.cart}</p>}
                     <Button
-                      className="w-full mt-3 bg-green-600 hover:bg-green-700"
+                      className="w-full bg-green-600 hover:bg-green-700"
                       onClick={handleCreateInvoice}
                     >
                       Create Invoice
                     </Button>
                     <Button
                       variant="outline"
-                      className="w-full mt-2"
+                      className="w-full"
                       onClick={() => dispatch(clearCart())}
                     >
                       Clear Cart
@@ -207,7 +300,9 @@ const Invoices = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Invoice ID</TableHead>
+                <TableHead>Customer</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead>Time</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Total</TableHead>
                 {isAdmin && <TableHead>Store</TableHead>}
@@ -217,9 +312,11 @@ const Invoices = () => {
               {userInvoices.slice(0, 10).map((invoice) => (
                 <TableRow key={invoice.id}>
                   <TableCell className="font-medium">{invoice.id}</TableCell>
+                  <TableCell>{invoice.customerName || 'N/A'}</TableCell>
                   <TableCell>{invoice.date}</TableCell>
+                  <TableCell>{invoice.time || 'N/A'}</TableCell>
                   <TableCell>{invoice.items.length} items</TableCell>
-                  <TableCell>${invoice.total.toFixed(2)}</TableCell>
+                  <TableCell className="font-bold text-green-600">${invoice.total.toFixed(2)}</TableCell>
                   {isAdmin && <TableCell>{invoice.storeName}</TableCell>}
                 </TableRow>
               ))}

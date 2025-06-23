@@ -10,8 +10,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const PREDEFINED_CATEGORIES = [
+  'Electronics',
+  'Accessories',
+  'Software',
+  'Hardware',
+  'Office Supplies',
+  'Mobile Devices',
+  'Gaming',
+  'Audio & Video'
+];
 
 const Products = () => {
   const dispatch = useDispatch();
@@ -20,6 +32,8 @@ const Products = () => {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -27,6 +41,7 @@ const Products = () => {
     category: '',
     storeId: user?.storeId || '',
   });
+  const [errors, setErrors] = useState<any>({});
 
   // Filter products based on user role and search/filter criteria
   const filteredProducts = products.filter(product => {
@@ -37,12 +52,27 @@ const Products = () => {
     return matchesRole && matchesSearch && matchesStore;
   });
 
+  const validateForm = () => {
+    const newErrors: any = {};
+    
+    if (!formData.name.trim()) newErrors.name = 'Product name is required';
+    if (!formData.price || parseFloat(formData.price) <= 0) newErrors.price = 'Valid price is required';
+    if (!formData.stock || parseInt(formData.stock) < 0) newErrors.stock = 'Valid stock quantity is required';
+    if (!formData.category) newErrors.category = 'Category is required';
+    if (isAdmin && !formData.storeId) newErrors.storeId = 'Store selection is required';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!validateForm()) return;
+    
     const productData = {
       id: editingProduct?.id || Date.now().toString(),
-      name: formData.name,
+      name: formData.name.trim(),
       price: parseFloat(formData.price),
       stock: parseInt(formData.stock),
       category: formData.category,
@@ -61,6 +91,24 @@ const Products = () => {
     resetForm();
   };
 
+  const handleCategoryChange = (value: string) => {
+    if (value === 'add_new') {
+      setShowNewCategoryInput(true);
+    } else {
+      setFormData({ ...formData, category: value });
+      setShowNewCategoryInput(false);
+    }
+  };
+
+  const handleAddNewCategory = () => {
+    if (newCategory.trim()) {
+      setFormData({ ...formData, category: newCategory.trim() });
+      setNewCategory('');
+      setShowNewCategoryInput(false);
+      toast.success('New category added');
+    }
+  };
+
   const handleEdit = (product: any) => {
     setEditingProduct(product);
     setFormData({
@@ -70,6 +118,7 @@ const Products = () => {
       category: product.category,
       storeId: product.storeId,
     });
+    setErrors({});
     setIsModalOpen(true);
   };
 
@@ -89,6 +138,9 @@ const Products = () => {
       storeId: user?.storeId || '',
     });
     setEditingProduct(null);
+    setErrors({});
+    setShowNewCategoryInput(false);
+    setNewCategory('');
     setIsModalOpen(false);
   };
 
@@ -110,69 +162,101 @@ const Products = () => {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="name">Product Name</Label>
+                <Label htmlFor="name">Product Name *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
+                  className={errors.name ? 'border-red-500' : ''}
                 />
+                {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
               </div>
+              
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="price">Price</Label>
+                  <Label htmlFor="price">Price *</Label>
                   <Input
                     id="price"
                     type="number"
                     step="0.01"
+                    min="0"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    required
+                    className={errors.price ? 'border-red-500' : ''}
                   />
+                  {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price}</p>}
                 </div>
                 <div>
-                  <Label htmlFor="stock">Stock</Label>
+                  <Label htmlFor="stock">Stock *</Label>
                   <Input
                     id="stock"
                     type="number"
+                    min="0"
                     value={formData.stock}
                     onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                    required
+                    className={errors.stock ? 'border-red-500' : ''}
                   />
+                  {errors.stock && <p className="text-red-500 text-xs mt-1">{errors.stock}</p>}
                 </div>
               </div>
+              
               <div>
-                <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  required
-                />
+                <Label htmlFor="category">Category *</Label>
+                {!showNewCategoryInput ? (
+                  <Select value={formData.category} onValueChange={handleCategoryChange}>
+                    <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PREDEFINED_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="add_new">+ Add New Category</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter new category"
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                    />
+                    <Button type="button" size="sm" onClick={handleAddNewCategory}>
+                      Add
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setShowNewCategoryInput(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+                {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category}</p>}
               </div>
+              
               {isAdmin && (
                 <div>
-                  <Label htmlFor="storeId">Store</Label>
-                  <select
-                    id="storeId"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    value={formData.storeId}
-                    onChange={(e) => setFormData({ ...formData, storeId: e.target.value })}
-                    required
-                  >
-                    <option value="">Select Store</option>
-                    <option value="1">Downtown Store</option>
-                    <option value="2">Mall Store</option>
-                  </select>
+                  <Label htmlFor="storeId">Store *</Label>
+                  <Select value={formData.storeId} onValueChange={(value) => setFormData({ ...formData, storeId: value })}>
+                    <SelectTrigger className={errors.storeId ? 'border-red-500' : ''}>
+                      <SelectValue placeholder="Select Store" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Downtown Store</SelectItem>
+                      <SelectItem value="2">Mall Store</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.storeId && <p className="text-red-500 text-xs mt-1">{errors.storeId}</p>}
                 </div>
               )}
-              <div className="flex justify-end space-x-2">
+              
+              <div className="flex justify-end space-x-2 pt-4">
                 <Button type="button" variant="outline" onClick={resetForm}>
                   Cancel
                 </Button>
