@@ -48,11 +48,14 @@ const MainApp = () => {
         onClose={() => setSidebarOpen(false)}
       />
       
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main content area with left margin to account for fixed sidebar */}
+      <div className="flex-1 flex flex-col min-w-0 ml-64">
         <Navbar onMenuClick={() => setSidebarOpen(true)} />
         
-        <main className="flex-1 p-6 overflow-auto">
-          {renderContent()}
+        <main className="flex-1 p-6 overflow-auto bg-gradient-to-br from-gray-50 to-gray-100">
+          <div className="max-w-7xl mx-auto">
+            {renderContent()}
+          </div>
         </main>
       </div>
     </div>
