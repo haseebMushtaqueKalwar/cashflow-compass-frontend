@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import LoginForm from './auth/LoginForm';
 import Navbar from './layout/Navbar';
@@ -12,13 +12,9 @@ import Stores from './pages/Stores';
 import Users from './pages/Users';
 
 const MainApp = () => {
-  const { isAuthenticated, initializeAuth } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    initializeAuth();
-  }, [initializeAuth]);
 
   if (!isAuthenticated) {
     return <LoginForm />;

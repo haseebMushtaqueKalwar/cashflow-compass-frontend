@@ -1,5 +1,6 @@
 
 import { useSelector, useDispatch } from 'react-redux';
+import { useCallback, useEffect } from 'react';
 import { RootState } from '../store';
 import { loginStart, loginSuccess, loginFailure, logout as logoutAction, loadUserFromStorage } from '../store/slices/authSlice';
 import toast from 'react-hot-toast';
@@ -7,6 +8,15 @@ import toast from 'react-hot-toast';
 export const useAuth = () => {
   const dispatch = useDispatch();
   const { user, isAuthenticated, loading } = useSelector((state: RootState) => state.auth);
+
+  // Load user from storage on hook initialization
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    if (token && userStr && !user) {
+      dispatch(loadUserFromStorage());
+    }
+  }, [dispatch, user]);
 
   const login = async (username: string, password: string) => {
     dispatch(loginStart());
@@ -42,14 +52,10 @@ export const useAuth = () => {
     }
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     dispatch(logoutAction());
     toast.success('Logged out successfully');
-  };
-
-  const initializeAuth = () => {
-    dispatch(loadUserFromStorage());
-  };
+  }, [dispatch]);
 
   return {
     user,
@@ -57,7 +63,6 @@ export const useAuth = () => {
     loading,
     login,
     logout,
-    initializeAuth,
     isAdmin: user?.role === 'Admin'
   };
 };

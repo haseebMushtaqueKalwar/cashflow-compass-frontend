@@ -16,16 +16,21 @@ interface AuthState {
   loading: boolean;
 }
 
-const initialState: AuthState = {
-  user: null,
-  token: localStorage.getItem('token'),
-  isAuthenticated: !!localStorage.getItem('token'),
-  loading: false,
+const getInitialState = (): AuthState => {
+  const token = localStorage.getItem('token');
+  const userStr = localStorage.getItem('user');
+  
+  return {
+    user: userStr ? JSON.parse(userStr) : null,
+    token,
+    isAuthenticated: !!token,
+    loading: false,
+  };
 };
 
 const authSlice = createSlice({
   name: 'auth',
-  initialState,
+  initialState: getInitialState(),
   reducers: {
     loginStart: (state) => {
       state.loading = true;
@@ -45,13 +50,17 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
+      state.loading = false;
       localStorage.removeItem('token');
       localStorage.removeItem('user');
     },
     loadUserFromStorage: (state) => {
       const userStr = localStorage.getItem('user');
-      if (userStr) {
+      const token = localStorage.getItem('token');
+      if (userStr && token) {
         state.user = JSON.parse(userStr);
+        state.token = token;
+        state.isAuthenticated = true;
       }
     },
   },
