@@ -40,7 +40,7 @@ const MainApp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex w-full">
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -48,11 +48,19 @@ const MainApp = () => {
         onClose={() => setSidebarOpen(false)}
       />
       
-      {/* Main content area with left margin to account for fixed sidebar */}
-      <div className="flex-1 flex flex-col min-w-0 ml-64">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      
+      {/* Main content area with responsive margins */}
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
         <Navbar onMenuClick={() => setSidebarOpen(true)} />
         
-        <main className="flex-1 p-6 overflow-auto bg-gradient-to-br from-gray-50 to-gray-100">
+        <main className="flex-1 p-3 md:p-6 overflow-auto bg-gradient-to-br from-gray-50 to-gray-100">
           <div className="max-w-7xl mx-auto">
             {renderContent()}
           </div>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
@@ -13,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import CategoryManager from '../modals/CategoryManager';
 
 const PREDEFINED_CATEGORIES = [
   'Electronics',
@@ -145,7 +145,7 @@ const Products = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -268,6 +268,16 @@ const Products = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Category Management Section */}
+      <Card className="shadow-sm border border-gray-200">
+        <CardHeader>
+          <CardTitle className="text-lg">Category Management</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CategoryManager />
+        </CardContent>
+      </Card>
 
       {/* Filters */}
       <Card>

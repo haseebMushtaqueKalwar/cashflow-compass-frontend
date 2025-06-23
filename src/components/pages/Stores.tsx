@@ -7,22 +7,51 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, MapPin, Users } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Edit, Trash2, MapPin, Users, Building, User, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Stores = () => {
   const { isAdmin } = useAuth();
   const [stores, setStores] = useState([
-    { id: '1', name: 'Downtown Store', address: '123 Main St, Downtown', manager: 'John Doe', users: 3, status: 'Active' },
-    { id: '2', name: 'Mall Store', address: '456 Mall Ave, Shopping Center', manager: 'Jane Smith', users: 2, status: 'Active' },
+    { 
+      id: '1', 
+      name: 'Downtown Store', 
+      address: '123 Main St, Downtown', 
+      managerId: '1',
+      manager: 'John Doe', 
+      users: 3, 
+      status: 'Active',
+      revenue: 125000,
+      growth: '+12%'
+    },
+    { 
+      id: '2', 
+      name: 'Mall Store', 
+      address: '456 Mall Ave, Shopping Center', 
+      managerId: '2',
+      manager: 'Jane Smith', 
+      users: 2, 
+      status: 'Active',
+      revenue: 98000,
+      growth: '+8%'
+    },
   ]);
+  
+  // Sample users who can be store managers
+  const availableManagers = [
+    { id: '1', name: 'John Doe', role: 'Store Manager' },
+    { id: '2', name: 'Jane Smith', role: 'Store Manager' },
+    { id: '3', name: 'Mike Johnson', role: 'Team Lead' },
+    { id: '4', name: 'Sarah Wilson', role: 'Senior Staff' },
+  ];
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStore, setEditingStore] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
-    manager: '',
+    managerId: '',
   });
 
   if (!isAdmin) {
@@ -39,13 +68,18 @@ const Stores = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    const selectedManager = availableManagers.find(m => m.id === formData.managerId);
+    
     const storeData = {
       id: editingStore?.id || Date.now().toString(),
       name: formData.name,
       address: formData.address,
-      manager: formData.manager,
+      managerId: formData.managerId,
+      manager: selectedManager?.name || 'Unassigned',
       users: editingStore?.users || 0,
       status: 'Active',
+      revenue: editingStore?.revenue || 0,
+      growth: editingStore?.growth || '+0%',
     };
 
     if (editingStore) {
@@ -66,7 +100,7 @@ const Stores = () => {
     setFormData({
       name: store.name,
       address: store.address,
-      manager: store.manager,
+      managerId: store.managerId || '',
     });
     setIsModalOpen(true);
   };
@@ -82,19 +116,21 @@ const Stores = () => {
     setFormData({
       name: '',
       address: '',
-      manager: '',
+      managerId: '',
     });
     setEditingStore(null);
     setIsModalOpen(false);
   };
 
+  const totalRevenue = stores.reduce((sum, store) => sum + store.revenue, 0);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-0">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col space-y-4 lg:flex-row lg:justify-between lg:items-center lg:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Store Management</h1>
-          <p className="text-gray-600">Manage all store locations and settings</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Store Management</h1>
+          <p className="text-sm md:text-base text-gray-600 mt-1">Manage all store locations, managers, and settings</p>
         </div>
         
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -104,7 +140,7 @@ const Stores = () => {
               Add Store
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>{editingStore ? 'Edit Store' : 'Add New Store'}</DialogTitle>
             </DialogHeader>
@@ -128,13 +164,22 @@ const Stores = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="manager">Manager</Label>
-                <Input
-                  id="manager"
-                  value={formData.manager}
-                  onChange={(e) => setFormData({ ...formData, manager: e.target.value })}
-                  required
-                />
+                <Label htmlFor="manager">Store Manager</Label>
+                <Select value={formData.managerId} onValueChange={(value) => setFormData({ ...formData, managerId: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a store manager" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableManagers.map((manager) => (
+                      <SelectItem key={manager.id} value={manager.id}>
+                        {manager.name} ({manager.role})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Select from existing users with manager/lead roles
+                </p>
               </div>
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={resetForm}>
@@ -149,98 +194,146 @@ const Stores = () => {
         </Dialog>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
+      {/* Enhanced Stats Cards with consistent theme */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Stores</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-blue-700">Total Stores</CardTitle>
+            <Building className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stores.length}</div>
-            <p className="text-xs text-muted-foreground">Active locations</p>
+            <div className="text-2xl font-bold text-blue-600">{stores.length}</div>
+            <p className="text-xs text-blue-600 flex items-center mt-1">
+              <TrendingUp className="h-3 w-3 mr-1" />
+              Active locations
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-green-700">Total Revenue</CardTitle>
+            <MapPin className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-green-600">${totalRevenue.toLocaleString()}</div>
+            <p className="text-xs text-green-600 flex items-center mt-1">
+              <TrendingUp className="h-3 w-3 mr-1" />
+              Combined stores
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-purple-700">Total Staff</CardTitle>
+            <Users className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
               {stores.reduce((sum, store) => sum + store.users, 0)}
             </div>
-            <p className="text-xs text-muted-foreground">Across all stores</p>
+            <p className="text-xs text-purple-600 flex items-center mt-1">
+              <User className="h-3 w-3 mr-1" />
+              Across all stores
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Users/Store</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-orange-700">Avg Staff/Store</CardTitle>
+            <Users className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-orange-600">
               {stores.length > 0 ? Math.round(stores.reduce((sum, store) => sum + store.users, 0) / stores.length) : 0}
             </div>
-            <p className="text-xs text-muted-foreground">Users per location</p>
+            <p className="text-xs text-orange-600 flex items-center mt-1">
+              <TrendingUp className="h-3 w-3 mr-1" />
+              Staff per location
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Stores Table */}
-      <Card>
+      {/* Enhanced Stores Table */}
+      <Card className="shadow-sm border border-gray-200">
         <CardHeader>
-          <CardTitle>Store List</CardTitle>
+          <CardTitle className="text-lg flex items-center">
+            <Building className="h-5 w-5 mr-2" />
+            Store Directory
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Store Name</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead>Manager</TableHead>
-                <TableHead>Users</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {stores.map((store) => (
-                <TableRow key={store.id}>
-                  <TableCell className="font-medium">{store.name}</TableCell>
-                  <TableCell>{store.address}</TableCell>
-                  <TableCell>{store.manager}</TableCell>
-                  <TableCell>{store.users}</TableCell>
-                  <TableCell>
-                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                      {store.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(store)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDelete(store.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-medium">Store Details</TableHead>
+                  <TableHead className="font-medium">Manager</TableHead>
+                  <TableHead className="font-medium">Performance</TableHead>
+                  <TableHead className="font-medium">Status</TableHead>
+                  <TableHead className="font-medium">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {stores.map((store) => (
+                  <TableRow key={store.id} className="hover:bg-gray-50 transition-colors">
+                    <TableCell>
+                      <div>
+                        <div className="font-medium text-gray-900">{store.name}</div>
+                        <div className="text-sm text-gray-600 flex items-center mt-1">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {store.address}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium text-gray-900">{store.manager}</div>
+                        <div className="text-sm text-gray-600 flex items-center mt-1">
+                          <Users className="h-3 w-3 mr-1" />
+                          {store.users} staff members
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium text-green-600">${store.revenue.toLocaleString()}</div>
+                        <div className="text-sm text-green-600">{store.growth}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                        {store.status}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(store)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(store.id)}
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
