@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
@@ -8,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Download, FileText, Calendar, TrendingUp, DollarSign, Package, Users } from 'lucide-react';
+import { Download, FileText, Calendar, TrendingUp, DollarSign, Package, Users, Filter, ShoppingCart } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Reports = () => {
