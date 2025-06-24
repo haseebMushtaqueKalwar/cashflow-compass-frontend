@@ -28,7 +28,9 @@ export const StatsCard: React.FC<StatsCardProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <EnhancedCard className={cn("p-4", className)} isLoading={true} />
+      <EnhancedCard className={cn("p-4", className)} isLoading={true}>
+        <div />
+      </EnhancedCard>
     );
   }
 
